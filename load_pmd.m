@@ -19,51 +19,7 @@ end
 if load_marker==0
     xy_Marker=[];
 end
-%---- open pmd_file and find data starting line to use it for importing data correctly  ----
-% NOTE: I noticed that the importdata command worked differently in different MATLAB versions,
-% so it is safer to use first fopen command and get the subheader information later
-fid=fopen(pmd_file);	% open file
-[pmd_path, pmd_name, ~] = fileparts(pmd_file);	%to be used for saving later
-line_counter=0;
-while 1
-    fileline = fgetl(fid);
-    line_counter = line_counter +1;
-    if ~ischar(fileline),   break;
-    end
-    if ( strncmp (fileline, '# Data:', 7) == 1 )    %finding starting line of the data part
-        startdata_line = line_counter;
-    end
-end
-fclose(fid);
 
-%---- importing the data from the Physiometer file ----
-pmd_data = importdata( pmd_file, '\t', startdata_line );
-
-%---- finding from header starting line of the Varioport settings ----
-for i = 1: length(pmd_data.textdata)
-    if ( strncmp (pmd_data.textdata(i), '# Varioport Settings:', 21) == 1 )
-        settings_line = i;
-    end
-end
-
-% ---- retrieving from the header the values of the active channels and the data rate used ----
-% NOTE: it would be possible to read the <channel settings> and use the title given there in the plots;
-% BUT experience shows that sometimes people use a wrong title in the channel settings,
-% so the safest method is to read and use the activeChannels from the Varioport Settings
-
-Varioport_settings = char(pmd_data.textdata(settings_line+1) );
-
-pos_active_channels = strfind(Varioport_settings, 'activeChannels=');
-pos_data_rate = strfind(Varioport_settings, 'dataRate=');
-pos_comm_time_out = strfind(Varioport_settings, 'commTimeOut=');
-
-active_channels = str2num( Varioport_settings(pos_active_channels + length('activeChannels=') : pos_data_rate-1) );
-data_rate = str2num( Varioport_settings(pos_data_rate + length('dataRate=') : pos_comm_time_out-1) );
-
-display( ['recorded channels according to header: ', num2str(active_channels)] );
-
-sorted_active_channels = sort(active_channels);
-display( ['sorted active channels : ', num2str(sorted_active_channels)] );
 
 %---- parameters from Varioport manual ----
 offset = 32767;

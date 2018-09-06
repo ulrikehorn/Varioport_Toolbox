@@ -111,9 +111,13 @@ function loadbutton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 %-------------------------------------------------------------------------------------
-[handles.pmd_file,handles.xy_AUX,handles.data_rate,handles.marker_exists,xy_Marker]=open_pmd;
+% [handles.pmd_file,handles.xy_AUX,handles.data_rate,handles.marker_exists,xy_Marker]=open_pmd;
+% User chooses a pmd file to open
+% Function opens file and checks which channels are used and returns info to main function
+[handles.pmd_file,handles.data_rate,handles.sorted_active_channels,handles.pmd_data] = open_pmd;
 %-------------------------------------------------------------------------------------
-guidata(hObject, handles) % Update handles structure
+guidata(hObject, handles)
+% if no file has been chosen
 if handles.pmd_file==0
     return
 else
@@ -124,7 +128,10 @@ else
     %show file name
     set(handles.file_name_output,'String',handles.pmd_file);
     [~,pmd_name, ~] = fileparts(handles.pmd_file);
-    guidata(hObject, handles) % Update handles structure
+    guidata(hObject, handles)
+    
+    xy_data=load_channel_data(handles.pmd_file,handles.data_rate,handles.sorted_active_channels,handles.pmd_data);
+    
     
     if handles.marker_exists
         %-------------------------------------------------------------------------------------
