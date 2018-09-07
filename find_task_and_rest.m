@@ -1,4 +1,4 @@
-function [marker,design]=find_task_and_rest(xy_AUX,max_ampu,pmd_name,crest_start,data_rate)
+function [marker,design]=find_task_and_rest(xy_data,xy_peaks,pmd_name,crest_start,data_rate)
 %check if there is a marker, then the starts are already defined
 if crest_start~=0
     %ask if user wants to use the marker
@@ -16,16 +16,16 @@ if crest_start~=0
         peaknums=zeros(length(crest_start),1);
         for istart=1:length(crest_start)-1
             peakcounter=0;
-            for ipeaks=1:length(max_ampu)
-                if max_ampu(ipeaks,1)>crest_start(istart,1)&&max_ampu(ipeaks,1)<crest_start(istart+1,1)
+            for ipeaks=1:length(xy_peaks)
+                if xy_peaks(ipeaks,1)>crest_start(istart,1)&&xy_peaks(ipeaks,1)<crest_start(istart+1,1)
                     peakcounter=peakcounter+1;
                 end
             end
             peaknums(istart,1)=peakcounter;
         end
         peakcounter=0;
-        for ipeaks=1:length(max_ampu)
-            if max_ampu(ipeaks,1)>crest_start(end,1)
+        for ipeaks=1:length(xy_peaks)
+            if xy_peaks(ipeaks,1)>crest_start(end,1)
                 peakcounter=peakcounter+1;
             end
         end
@@ -44,7 +44,7 @@ if crest_start~=0
         for itask=1:length(task_index)
             task_start_end(itask,1:2)=[crest_start(task_index(itask)) crest_start(task_index(itask)+1)];
         end
-        design=calculate_rest(task_start_end,xy_AUX);
+        design=calculate_rest(task_start_end,xy_data);
     end
     if strcmpi(button, 'No')
         no_marker=1;
@@ -59,14 +59,14 @@ if no_marker==1
     button = questdlg(promptMessage, 'Question', 'Yes', 'No', 'Cancel', 'Cancel');
     if strcmpi(button, 'No')
         %%here the design is estimated by the peaks
-        setappdata(0,'xy_AUX',xy_AUX);
-        setappdata(0,'max_ampu',max_ampu);
+        setappdata(0,'xy_data',xy_data);
+        setappdata(0,'xy_peaks',xy_peaks);
         setappdata(0,'pmd_name',pmd_name);
         task_peak_area
         uiwait
         task_start_end = getappdata(0,'task_start_end');
         task_start_end=round(task_start_end,log10(data_rate));
-        design=calculate_rest(task_start_end,xy_AUX);
+        design=calculate_rest(task_start_end,xy_data);
         % also define marker
         task_marker=sort([task_start_end(:,1);task_start_end(:,2)]);
         % this one does not necessarily have to be in xy_AUX
@@ -75,9 +75,9 @@ if no_marker==1
         marker=zeros(length(task_marker),2);
         marker(:,1)=task_marker;
         for i=1:length(task_marker)
-            for aa = 1:length(xy_AUX)
-                if round(xy_AUX(aa,1),log10(data_rate)) == task_marker(i)
-                    marker(i,2) = xy_AUX(aa,2);
+            for aa = 1:length(xy_data)
+                if round(xy_data(aa,1),log10(data_rate)) == task_marker(i)
+                    marker(i,2) = xy_data(aa,2);
                 end
             end
         end
@@ -130,7 +130,7 @@ if no_marker==1
             end
             % check if design fits the AUX file approximately
             design_length=num_blocks*length_task*data_rate+(num_blocks+1)*length_rest*data_rate;
-            if design_length>length(xy_AUX)
+            if design_length>length(xy_data)
                 %design too long
                 promptMessage = sprintf('The design is too long for the given file.\n Do you want to enter another design,\nor Cancel to abort this step?');
                 button = questdlg(promptMessage, 'Warning', 'Continue', 'Cancel', 'Continue');
@@ -144,7 +144,7 @@ if no_marker==1
                 loop=0;
                 %design correct
                 % define beginning of experiment -> set first task block
-                setappdata(0,'xy_AUX',xy_AUX);
+                setappdata(0,'xy_data',xy_data);
                 %-------------------------------------------------------------------------------------
                 marker3_gui
                 %-------------------------------------------------------------------------------------
@@ -155,9 +155,9 @@ if no_marker==1
                     % file, otherwise calculate_blocks does something wrong
                     % give marker3 info to function which calculates block starts and ends
                     %-------------------------------------------------------------------------------------
-                    [marker,task_start_end]=calculate_design_with_first_task_marker(marker3,num_blocks,length_task,length_rest,xy_AUX,data_rate);
+                    [marker,task_start_end]=calculate_design_with_first_task_marker(marker3,num_blocks,length_task,length_rest,xy_data,data_rate);
                     %-------------------------------------------------------------------------------------
-                    design=calculate_rest(task_start_end,xy_AUX);
+                    design=calculate_rest(task_start_end,xy_data);
                 else
                     errordlg('You have not specified a marker.','Error');
                 end

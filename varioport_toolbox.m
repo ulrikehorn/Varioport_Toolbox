@@ -64,18 +64,16 @@ handles.output = hObject;
 % initialize several variable handles to pass them to many functions
 handles.pmd_file = hObject;
 handles.pmd_file = '';
-handles.xy_AUX = hObject;
-handles.xy_AUX = [];
+handles.xy_data = hObject;
+handles.xy_data = [];
 handles.data_rate = hObject;
 handles.data_rate = [];
-handles.marker_exists = hObject;
-handles.marker_exists = [];
-handles.max_ampu = hObject;
-handles.max_ampu = {};
+handles.xy_peaks = hObject;
+handles.xy_peaks = {};
 handles.design = hObject;
 handles.design = {};
-handles.corr_max_ampu = hObject;
-handles.corr_max_ampu = {};
+handles.corr_xy_peaks = hObject;
+handles.corr_xy_peaks = {};
 handles.crest_start = hObject;
 handles.crest_start = [];
 
@@ -114,41 +112,57 @@ function loadbutton_Callback(hObject, eventdata, handles)
 % [handles.pmd_file,handles.xy_AUX,handles.data_rate,handles.marker_exists,xy_Marker]=open_pmd;
 % User chooses a pmd file to open
 % Function opens file and checks which channels are used and returns info to main function
-[handles.pmd_file,handles.data_rate,handles.sorted_active_channels,handles.pmd_data] = open_pmd;
+[handles.pmd_file,handles.data_rate,handles.active_channels,handles.pmd_data] = open_pmd;
 %-------------------------------------------------------------------------------------
 guidata(hObject, handles)
 % if no file has been chosen
-if handles.pmd_file==0
+if isempty(handles.pmd_file)
     return
 else
+    axes(handles.plot1); % create plot window
+    cla; % clear plot content
     %delete handles from previous sessions
+    handles.xy_data = [];
+    handles.xy_marker = [];
     handles.crest_start = [];
-    handles.max_ampu = [];
-    handles.corr_max_ampu = [];
-    %show file name
+    handles.xy_peaks = [];
+    handles.corr_xy_peaks = [];
+    handles.data_type = [];
+    handles.design = [];
+    handles.marker = [];
+    %show new file name
     set(handles.file_name_output,'String',handles.pmd_file);
     [~,pmd_name, ~] = fileparts(handles.pmd_file);
     guidata(hObject, handles)
     
-    xy_data=load_channel_data(handles.pmd_file,handles.data_rate,handles.sorted_active_channels,handles.pmd_data);
-    
-    
-    if handles.marker_exists
-        %-------------------------------------------------------------------------------------
-        [handles.crest_start]=calculate_blocks_with_marker(handles.xy_AUX,handles.data_rate,xy_Marker);
-        guidata(hObject, handles) % Update handles structure
-        %-------------------------------------------------------------------------------------
-        set(handles.protocol,'String',{'Successfully loaded AUX data and saved it in a figure.',...
-            'The marker was used for defining the analysis blocks.'});
-        axes(handles.plot1); % create plot window
-        cla; % clear plot content
-        plot_again(handles.xy_AUX,pmd_name,'marker',handles.crest_start)
+    [handles.xy_data,handles.xy_marker,handles.data_type]=load_channel_data(handles.pmd_file,handles.data_rate,handles.active_channels,handles.pmd_data);
+    guidata(hObject, handles)
+    %check if nothing has been loaded (e.g. the user did not chose a
+    %channel)
+    if isempty(handles.xy_data)
+        %delete file name
+        set(handles.file_name_output,'String','');
+        handles.pmd_file=[];
+        guidata(hObject, handles)
     else
-        set(handles.protocol,'String',{'Successfully loaded AUX data and saved it in a figure.',...
-            'There is no marker to use for defining the analysis blocks.'});
-        axes(handles.plot1); % create plot window
-        cla; % clear plot content
-        plot_again(handles.xy_AUX,pmd_name)
+        % there can be no saved marker or the marker can just contain zeros
+        if isempty(handles.xy_marker)||isempty(find(handles.xy_marker(:,2)~=0, 1))
+            set(handles.protocol,'String',{'Successfully loaded data and saved it in a figure.',...
+                'There is no marker to use for defining the analysis blocks.'});
+            axes(handles.plot1); % create plot window
+            cla; % clear plot content
+            plot_again(handles.xy_data,pmd_name,handles.data_type)
+        else
+            %-------------------------------------------------------------------------------------
+            [handles.crest_start]=calculate_blocks_with_marker(handles.xy_data,handles.data_rate,handles.xy_marker);
+            guidata(hObject, handles) % Update handles structure
+            %-------------------------------------------------------------------------------------
+            set(handles.protocol,'String',{'Successfully loaded data and saved it in a figure.',...
+                'The marker was used for defining the analysis blocks.'});
+            axes(handles.plot1); % create plot window
+            cla; % clear plot content
+            plot_again(handles.xy_data,pmd_name,handles.data_type,'marker',handles.crest_start)
+        end
     end
 end
 
@@ -160,27 +174,31 @@ function find_peaks_button_Callback(hObject, eventdata, handles)
 if isempty(handles.pmd_file)
     errordlg('Load a file first.','Error');
 else
-    [pmd_path,pmd_name, ~] = fileparts(handles.pmd_file);
+    [~,pmd_name, ~] = fileparts(handles.pmd_file);
     %-------------------------------------------------------------------------------------
-    setappdata(0,'xy_AUX',handles.xy_AUX);
+    setappdata(0,'xy_data',handles.xy_data);
+    setappdata(0,'pmd_file',handles.pmd_file);
     peak_gui
     uiwait;
-    handles.max_ampu = getappdata(0,'max_ampu');
-    %-------------------------------------------------------------------------------------
+    handles.xy_peaks = getappdata(0,'xy_peaks');
     guidata(hObject, handles) % Update handles structure
-    strings=get(handles.protocol,'String');
-    strings(length(strings)+1)={'Several peaks have been found and saved.'};
-    set(handles.protocol,'String',strings);
-    strings=get(handles.protocol,'String');
-    strings(length(strings)+1)={'Check the design to define where the background should be.'};
-    set(handles.protocol,'String',strings);
-    peaksname = strcat(pmd_name,'_peaks');
-    max_ampu=handles.max_ampu;
-    save(fullfile(pmd_path,peaksname), 'max_ampu');
-    if ~isempty(handles.crest_start)
-        plot_again(handles.xy_AUX,pmd_name,'marker',handles.crest_start,'peaks',max_ampu);
+    %-------------------------------------------------------------------------------------
+    if isempty(handles.xy_peaks)
+        strings=get(handles.protocol,'String');
+        strings(length(strings)+1)={'No peaks have been saved.'};
+        set(handles.protocol,'String',strings);
     else
-        plot_again(handles.xy_AUX,pmd_name,'peaks',max_ampu);
+        strings=get(handles.protocol,'String');
+        strings(length(strings)+1)={'Several peaks have been found and saved.'};
+        set(handles.protocol,'String',strings);
+        strings=get(handles.protocol,'String');
+        strings(length(strings)+1)={'Check the design to define where the background should be.'};
+        set(handles.protocol,'String',strings);
+        if ~isempty(handles.crest_start)
+            plot_again(handles.xy_data,pmd_name,handles.data_type,'marker',handles.crest_start,'peaks',handles.xy_peaks);
+        else
+            plot_again(handles.xy_data,pmd_name,handles.data_type,'peaks',handles.xy_peaks);
+        end
     end
 end
 
@@ -193,7 +211,7 @@ function define_blocks_button_Callback(hObject, eventdata, handles)
 if isempty(handles.pmd_file)
     errordlg('Load a file first.','Error');
 else
-    if isempty(handles.max_ampu) %no peaks have been defined in this session
+    if isempty(handles.xy_peaks) %no peaks have been defined in this session
         [pmd_path,pmd_name, ~] = fileparts(handles.pmd_file);
         if ~exist(strcat(fullfile(pmd_path,pmd_name),'_peaks.mat'),'file') % and there is no peaks file from another session
             errordlg('Please define peaks first.','Error');
@@ -203,9 +221,12 @@ else
             promptMessage = sprintf('There is already a file with calculated peaks.\n Do you want to use it?');
             button = questdlg(promptMessage, 'Warning', 'Yes', 'No', 'No');
             if strcmpi(button, 'Yes')
-                load(strcat(fullfile(pmd_path,pmd_name),'_peaks.mat'), 'max_ampu');
-                handles.max_ampu=max_ampu;
+                load(strcat(fullfile(pmd_path,pmd_name),'_peaks.mat'), 'xy_peaks');
+                handles.xy_peaks=xy_peaks;
                 guidata(hObject, handles) % Update handles structure
+                strings=get(handles.protocol,'String');
+                strings(length(strings)+1)={'The existing file with calculated peaks has been loaded.'};
+                set(handles.protocol,'String',strings);
             end
             if strcmpi(button, 'No')
                 errordlg('Then define new peaks by clicking on the button "Find peaks".','Error');
@@ -213,10 +234,11 @@ else
             end
         end
     end
-    setappdata(0,'xy_AUX',handles.xy_AUX);
+    setappdata(0,'xy_data',handles.xy_data);
     setappdata(0,'pmd_file',handles.pmd_file);
-    setappdata(0,'max_ampu',handles.max_ampu);
+    setappdata(0,'xy_peaks',handles.xy_peaks);
     setappdata(0,'data_rate',handles.data_rate);
+    setappdata(0,'data_type',handles.data_type);
     if ~isempty(handles.crest_start)
         setappdata(0,'crest_start',handles.crest_start);
     else
@@ -234,8 +256,11 @@ else
         errordlg('No design definition found.','Error');
         return
     else
+        strings=get(handles.protocol,'String');
+        strings(length(strings)+1)={'Design has been saved.'};
+        set(handles.protocol,'String',strings);
         task_start_end=cell2mat(handles.design(strcmp(handles.design(:,4),'task'),2:3));
-        plot_again(handles.xy_AUX,pmd_name,'marker',handles.marker,'peaks',handles.max_ampu,'task',task_start_end);
+        plot_again(handles.xy_data,pmd_name,handles.data_type,'marker',handles.marker,'peaks',handles.xy_peaks,'task',task_start_end);
     end
 end
 
@@ -250,7 +275,7 @@ if isempty(handles.pmd_file)
     return
 else
     [pmd_path,pmd_name, ~] = fileparts(handles.pmd_file);
-    if isempty(handles.max_ampu) %no peaks have been defined in this session
+    if isempty(handles.xy_peaks) %no peaks have been defined in this session
         if ~exist(strcat(fullfile(pmd_path,pmd_name),'_peaks.mat'),'file') % and there is no peaks file from another session
             errordlg('Define peaks first.','Error');
             return
@@ -259,9 +284,12 @@ else
             promptMessage = sprintf('There is already a file with calculated peaks.\n Do you want to use it?');
             button = questdlg(promptMessage, 'Warning', 'Yes', 'No', 'No');
             if strcmpi(button, 'Yes')
-                load(strcat(fullfile(pmd_path,pmd_name),'_peaks.mat'), 'max_ampu');
-                handles.max_ampu=max_ampu;
+                load(strcat(fullfile(pmd_path,pmd_name),'_peaks.mat'), 'xy_peaks');
+                handles.xy_peaks=xy_peaks;
                 guidata(hObject, handles) % Update handles structure
+                strings=get(handles.protocol,'String');
+                strings(length(strings)+1)={'The existing file with calculated peaks has been loaded.'};
+                set(handles.protocol,'String',strings);
             end
             if strcmpi(button, 'No')
                 errordlg('Then define new peaks by clicking on the button "find peaks".','Error');
@@ -276,12 +304,15 @@ else
             return
         else
             %ask if the user wants to load the old design file
-            promptMessage = sprintf('There is already a file with calculated peaks.\n Do you want to use it?');
+            promptMessage = sprintf('There is already a file with a saved design.\n Do you want to use it?');
             button = questdlg(promptMessage, 'Warning', 'Yes', 'No', 'No');
             if strcmpi(button, 'Yes')
                 load(strcat(fullfile(pmd_path,pmd_name),'_design.mat'), 'design');
                 handles.design=design;
                 guidata(hObject, handles) % Update handles structure
+                strings=get(handles.protocol,'String');
+                strings(length(strings)+1)={'The existing file with the saved design has been loaded.'};
+                set(handles.protocol,'String',strings);
             end
             if strcmpi(button, 'No')
                 errordlg('Then define a new design by clicking on the button "check design".','Error');
@@ -290,11 +321,15 @@ else
         end
     end
     %-------------------------------------------------------------------------------------
-    [handles.corr_max_ampu,mean_bkgr]=substract_background(handles.xy_AUX,handles.max_ampu,handles.design);
+    [handles.corr_xy_peaks,mean_bkgr]=substract_background(handles.xy_data,handles.xy_peaks,handles.design);
     %-------------------------------------------------------------------------------------
     guidata(hObject, handles) % Update handles structure
     task_start_end=cell2mat(handles.design(strcmp(handles.design(:,4),'task'),2:3));
-    plot_again(handles.xy_AUX,pmd_name,'marker',handles.marker,'peaks',handles.max_ampu,'task',task_start_end,'background',mean_bkgr);
+    if isempty(handles.marker)
+        plot_again(handles.xy_data,pmd_name,handles.data_type,'peaks',handles.xy_peaks,'task',task_start_end,'background',mean_bkgr);
+    else
+        plot_again(handles.xy_data,pmd_name,handles.data_type,'marker',handles.marker,'peaks',handles.xy_peaks,'task',task_start_end,'background',mean_bkgr);
+    end
     strings=get(handles.protocol,'String');
     strings(length(strings)+1)={'The amplitudes have been corrected for background noise.'};
     set(handles.protocol,'String',strings);
@@ -312,17 +347,17 @@ if isempty(handles.pmd_file)
     errordlg('Load a file first.','Error');
 else
     [~,pmd_name, ~] = fileparts(handles.pmd_file);
-    if isempty(handles.corr_max_ampu)
+    if isempty(handles.corr_xy_peaks)
         promptMessage = sprintf('You did not correct for background noise.\n Do you want to continue with \nuncorrected values (not recommended),or cancel?');
         button = questdlg(promptMessage, 'Continue', 'Continue', 'Cancel', 'Continue');
         if strcmpi(button, 'Cancel')
             return;
         end
         if strcmpi(button, 'Continue')
-            setappdata(0,'max_ampu',handles.max_ampu);
+            setappdata(0,'xy_peaks',handles.xy_peaks);
         end
     else
-        setappdata(0,'max_ampu',handles.corr_max_ampu);
+        setappdata(0,'xy_peaks',handles.corr_xy_peaks);
     end
     [pmd_path,~, ~] = fileparts(handles.pmd_file);
     load(strcat(fullfile(pmd_path,pmd_name),'_design.mat'), 'design');

@@ -16,7 +16,7 @@
 % ulrike.horn@uni-greifswald.de
 % 31.08.2017
 
-function [mmampu,mean_bkgr]=substract_background(xy_AUX,maxampu,design)
+function [corr_xy_peaks,mean_bkgr]=substract_background(xy_data,xy_peaks,design)
 %% ------------ calculating the baseline (background) amplitude ---------------------
 % get .mat file with the defined blocks
 % the user puts 2 cursors on the stable background of the plot of block 2 (rest)
@@ -29,8 +29,8 @@ rest_block_length=zeros(length(rest_start_end),1);
 for irest=1:length(rest_start_end)
     %calculate rest block lengths
     rest_block_length(irest,1)=rest_start_end(irest,2)-rest_start_end(irest,1);
-    for ipeak=1:length(maxampu)
-        if rest_start_end(irest,1)<maxampu(ipeak,1)&&maxampu(ipeak,1)<rest_start_end(irest,2)
+    for ipeak=1:length(xy_peaks)
+        if rest_start_end(irest,1)<xy_peaks(ipeak,1)&&xy_peaks(ipeak,1)<rest_start_end(irest,2)
             peak_counter(irest)=peak_counter(irest)+1;
         end
     end
@@ -42,23 +42,23 @@ end
 rest_block_length(index_one)=0;
 [~,index_two]=max(rest_block_length);
 
-xy_AUX_start_end=zeros(1,2);
-for i=1:length(xy_AUX)
-    if round(xy_AUX(i,1),4)==round(rest_start_end(index_one,1),4)
-        xy_AUX_start_end(1,1)=i;
+xy_data_start_end=zeros(1,2);
+for i=1:length(xy_data)
+    if round(xy_data(i,1),4)==round(rest_start_end(index_one,1),4)
+        xy_data_start_end(1,1)=i;
     end
-    if round(xy_AUX(i,1),4)==round(rest_start_end(index_one,2),4)
-        xy_AUX_start_end(1,2)=i;
+    if round(xy_data(i,1),4)==round(rest_start_end(index_one,2),4)
+        xy_data_start_end(1,2)=i;
     end
-    if round(xy_AUX(i,1),4)==round(rest_start_end(index_two,1),4)
-        xy_AUX_start_end(2,1)=i;
+    if round(xy_data(i,1),4)==round(rest_start_end(index_two,1),4)
+        xy_data_start_end(2,1)=i;
     end
-    if round(xy_AUX(i,1),4)==round(rest_start_end(index_two,2),4)
-        xy_AUX_start_end(2,2)=i;
+    if round(xy_data(i,1),4)==round(rest_start_end(index_two,2),4)
+        xy_data_start_end(2,2)=i;
     end
 end
 
-rest_block_one=xy_AUX(xy_AUX_start_end(1,1):xy_AUX_start_end(1,2),:);
+rest_block_one=xy_data(xy_data_start_end(1,1):xy_data_start_end(1,2),:);
 setappdata(0,'range',rest_block_one);
 restmarker_gui;
 uiwait;
@@ -84,7 +84,7 @@ end
 mean_bkgr_first = mean(bkgr_first(:,1));
 
 %%
-rest_block_two=xy_AUX(xy_AUX_start_end(2,1):xy_AUX_start_end(2,2),:);
+rest_block_two=xy_data(xy_data_start_end(2,1):xy_data_start_end(2,2),:);
 setappdata(0,'range',rest_block_two);
 restmarker_gui;
 uiwait;
@@ -115,9 +115,9 @@ mean_bkgr_second = mean(bkgr_second(:,1));
 mean_bkgr = (mean_bkgr_first + mean_bkgr_second)/2;
 
 %% ------------ substracting background from amplitude values ---------------------
-for k = 1: length(maxampu)	% for all blocks
-    mmampu(:,1)=maxampu(:,1);
-    mmampu(:,2)=maxampu(:,2) - round(mean_bkgr);
+for k = 1: length(xy_peaks)	% for all blocks
+    corr_xy_peaks(:,1)=xy_peaks(:,1);
+    corr_xy_peaks(:,2)=xy_peaks(:,2) - round(mean_bkgr);
 end
 
 end

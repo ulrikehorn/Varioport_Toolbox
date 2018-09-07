@@ -69,8 +69,8 @@ if strcmp(get(hObject,'Visible'),'off')
     cla reset;
 end
 
-%% get (corrected) amplitude values of maxima
-amp = getappdata(0,'max_ampu');
+%% get (corrected) amplitude values of maxima peaks
+xy_peaks = getappdata(0,'xy_peaks');
 handles.pmd_file = getappdata(0,'pmd_file');
 design = getappdata(0,'design');
 [~,pmd_name, ~] = fileparts(handles.pmd_file);
@@ -80,18 +80,18 @@ data_rate = getappdata(0,'data_rate');
 % maximum table length num blocks x num peaks 
 % (for extreme case that all peaks are in one block
 % but take two columns for inserting each peak's time AND amplitude
-resulttable=cell(length(amp),size(design,1)*2);
+resulttable=cell(length(xy_peaks),size(design,1)*2);
 %loop through design and check in which blocks the peaks are
 peakcounter=1;
 for block=1:size(design,1)
     line_index=1;
-    for peak=peakcounter:length(amp)
-        if amp(peak,1)>design{block,3} %then there is no peak in this block
+    for peak=peakcounter:length(xy_peaks)
+        if xy_peaks(peak,1)>design{block,3} %then there is no peak in this block
             break
-        elseif design{block,2}<amp(peak,1)<design{block,3}
+        elseif design{block,2}<xy_peaks(peak,1)<design{block,3}
             peakcounter=peak+1;
-            resulttable{line_index,2*block-1}=amp(peak,1);
-            resulttable{line_index,2*block}=amp(peak,2);
+            resulttable{line_index,2*block-1}=xy_peaks(peak,1);
+            resulttable{line_index,2*block}=xy_peaks(peak,2);
             line_index=line_index+1;
         else
             display("error - peaks and design file do not fit together")

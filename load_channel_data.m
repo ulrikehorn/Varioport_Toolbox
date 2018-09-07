@@ -6,13 +6,12 @@
 %AUX: channel 4		Marker: channel 65		UBATT: channel 66
 %-----------------------------------------------------------------------------
 
-function [xy_data] = load_channel_data(pmd_file,data_rate,sorted_active_channels,pmd_data)
-
+function [xy_data,xy_marker,channel_name_of_interest] = load_channel_data(pmd_file,data_rate,active_channels,pmd_data)
+load_marker=false;
 [pmd_path, pmd_name, ~] = fileparts(pmd_file);	%to be used for saving later
-
-channels_wo_marker=sorted_active_channels;
+channels_wo_marker=active_channels;
 channels_wo_marker(channels_wo_marker==65)=[];
-if size(channels_wo_marker)~= size(sorted_active_channels)
+if size(channels_wo_marker,2)~= size(active_channels,2)
     load_marker=true;
 end
 channel_names=cell(1,size(channels_wo_marker,2));
@@ -39,8 +38,14 @@ if size(channels_wo_marker,2)>1
         {'Which channel do you want','to examine?'},...
         'SelectionMode','single',...
         'ListString',channel_names);
-    channel_of_interest=channels_wo_marker(indx);
-    channel_name_of_interest=channel_names(indx);
+    if tf
+        channel_of_interest=channels_wo_marker(indx);
+        channel_name_of_interest=channel_names(indx);
+    else
+        xy_data=[];
+        xy_marker=[];
+        return
+    end
 else
     channel_of_interest=channels_wo_marker;
     channel_name_of_interest=channel_names;
@@ -48,14 +53,14 @@ end
 
 if exist(strcat(fullfile(pmd_path,pmd_name),'_',channel_name_of_interest{1},'.mat'),'file')
     % Construct a questdlg with three options
-    choice = questdlg('The data for this channel has been loaded and saved already. Do you want to use it?', ... %question
+    choice = questdlg('The data for this channel has already been loaded and saved. Do you want to use it?', ... %question
         'File already existing', ... %title
         'Yes','No','No'); %options+default
     % Handle response
     switch choice
         case 'Yes'
             load_new_data = 0;
-            xy_data = [];
+            load(strcat(fullfile(pmd_path,pmd_name),'_',channel_name_of_interest{1},'.mat'),'xy_data');
         case 'No'
             load_new_data = 1;
     end
@@ -71,7 +76,7 @@ if load_new_data
     EMG_MUL = 1297;	EMG_DIV = 10000;
     UBATT_MUL = 127;	UBATT_DIV = 10000;
     
-    index= sorted_active_channels==channel_of_interest;
+    index= active_channels==channel_of_interest;
     % get corresponding data column and calculate the data values
     if channel_of_interest==4 %AUX
         data = pmd_data.data(:, index) - offset ;
@@ -101,20 +106,36 @@ if load_new_data
         'xy_data', 'data_rate');	%saving the .mat file
 end
 
+if load_marker
+    if exist(strcat(fullfile(pmd_path,pmd_name),'_marker.mat'),'file')
+        % Construct a questdlg with three options
+        choice = questdlg('The marker data has already been loaded and saved. Do you want to use it?', ... %question
+            'File already existing', ... %title
+            'Yes','No','No'); %options+default
+        % Handle response
+        switch choice
+            case 'Yes'
+                load_new_marker = 0;
+                load(strcat(fullfile(pmd_path,pmd_name),'_marker.mat'),'xy_marker');
 
-% if exist(strcat(fullfile(pmd_path,pmd_name),'_marker.mat'),'file')
-%     % Construct a questdlg with three options
-%     choice = questdlg('The marker data has been loaded and saved already. Do you want to use it?', ... %question
-%         'File already existing', ... %title
-%         'Yes','No','No'); %options+default
-%     % Handle response
-%     switch choice
-%         case 'Yes'
-%             load_new_marker = 0;
-%         case 'No'
-%             load_new_marker = 1;
-%     end
-% else
-%     load_new_marker = 1;
-% end
+            case 'No'
+                load_new_marker = 1;
+        end
+    else
+        load_new_marker = 1;
+    end
+    if load_new_marker
+        marker = pmd_data.data(:, active_channels==65);
+        for i=1:length(marker)
+            xmarker(i)= i * (1 / data_rate);
+        end
+        xmarker = xmarker' ;
+        xy_marker = horzcat(xmarker, marker);
+        
+        save(strcat(fullfile(pmd_path,pmd_name),'_marker.mat'),...
+        'xy_marker', 'data_rate');	%saving the .mat file
+    end
+else
+    xy_marker=[];
+end
 end

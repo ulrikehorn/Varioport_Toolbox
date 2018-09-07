@@ -54,7 +54,7 @@ function task_peak_area_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for task_peak_area
 handles.output = hObject;
-handles.xy_AUX = getappdata(0,'xy_AUX');
+handles.xy_data = getappdata(0,'xy_data');
 handles.max_ampu = getappdata(0,'max_ampu');
 handles.pmd_name = getappdata(0,'pmd_name');
 % Update handles structure
@@ -92,7 +92,7 @@ guidata(hObject, handles);
 
 axes(handles.axes1); % create plot window
 cla; % clear plot content
-plot_again(handles.xy_AUX,handles.pmd_name,'peaks',handles.max_ampu,'task',task_start_end);
+plot_again(handles.xy_data,handles.pmd_name,'peaks',handles.max_ampu,'task',task_start_end);
 
 % UIWAIT makes task_peak_area wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -143,7 +143,7 @@ handles.task_start_end=task_start_end;
 guidata(hObject, handles);
 axes(handles.axes1); % create plot window
 cla; % clear plot content
-plot_again(handles.xy_AUX,handles.pmd_name,'peaks',handles.max_ampu,'task',task_start_end);
+plot_again(handles.xy_data,handles.pmd_name,'peaks',handles.max_ampu,'task',task_start_end);
 
 
 % --- Executes during object creation, after setting all properties.

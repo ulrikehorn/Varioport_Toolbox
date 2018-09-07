@@ -63,15 +63,15 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 % 
-xy_AUX = getappdata(0,'xy_AUX');
+xy_data = getappdata(0,'xy_data');
 
 axes(handles.plot1); % create plot window
 cla; % clear plot content
-plot (xy_AUX(20:end, 1), xy_AUX(20:end, 2), 'k');
-axis ( [ min(xy_AUX(20:end, 1)) max(xy_AUX(20:end, 1)) ...
-    min(xy_AUX(20:end, 2)) max(xy_AUX(20:end, 2)) ] );
+plot (xy_data(20:end, 1), xy_data(20:end, 2), 'k');
+axis ( [ min(xy_data(20:end, 1)) max(xy_data(20:end, 1)) ...
+    min(xy_data(20:end, 2)) max(xy_data(20:end, 2)) ] );
 xlabel({'time (s)'});
-ylabel({'AUX (a.u.)'});
+ylabel({'data (a.u.)'});
 handles.dcm_obj = datacursormode;
 guidata(hObject, handles);
 

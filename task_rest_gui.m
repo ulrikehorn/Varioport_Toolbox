@@ -57,10 +57,11 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
-handles.xy_AUX = getappdata(0,'xy_AUX');
+handles.xy_data = getappdata(0,'xy_data');
 pmd_file = getappdata(0,'pmd_file');
+handles.data_type = getappdata(0,'data_type');
 handles.crest_start = getappdata(0,'crest_start');
-handles.max_ampu = getappdata(0,'max_ampu');
+handles.xy_peaks = getappdata(0,'xy_peaks');
 handles.data_rate = getappdata(0,'data_rate');
 [handles.pmd_path,handles.pmd_name, ~] = fileparts(pmd_file);
 handles.design=[];
@@ -71,18 +72,18 @@ guidata(hObject, handles);
 axes(handles.plot1); % create plot window
 cla; % clear plot content
 if handles.crest_start~=0
-    plot_again(handles.xy_AUX,handles.pmd_name,'marker',handles.crest_start,'peaks',handles.max_ampu);
+    plot_again(handles.xy_data,handles.pmd_name,handles.data_type,'marker',handles.crest_start,'peaks',handles.xy_peaks);
 else
-    plot_again(handles.xy_AUX,handles.pmd_name,'peaks',handles.max_ampu);
+    plot_again(handles.xy_data,handles.pmd_name,handles.data_type,'peaks',handles.xy_peaks);
 end
 guidata(hObject, handles);
-[handles.marker,handles.design]=find_task_and_rest(handles.xy_AUX,handles.max_ampu,handles.pmd_name,handles.crest_start,handles.data_rate);
+[handles.marker,handles.design]=find_task_and_rest(handles.xy_data,handles.xy_peaks,handles.pmd_name,handles.crest_start,handles.data_rate);
 guidata(hObject, handles);
 if isempty(handles.marker)
     set(handles.text2,'String','The design have not been defined. Please click on <change design>.');
 else
     task_start_end=cell2mat(handles.design(strcmp(handles.design(:,4),'task'),2:3));
-    plot_again(handles.xy_AUX,handles.pmd_name,'marker',handles.marker,'peaks',handles.max_ampu,'task',task_start_end);
+    plot_again(handles.xy_data,handles.pmd_name,handles.data_type,'marker',handles.marker,'peaks',handles.xy_peaks,'task',task_start_end);
 end
 % UIWAIT makes task_rest_gui wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -123,13 +124,13 @@ function changebutton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.saved=0;
 set(handles.text2,'String','');
-[handles.marker,handles.design]=find_task_and_rest(handles.xy_AUX,handles.max_ampu,handles.pmd_name,handles.crest_start,handles.data_rate);
+[handles.marker,handles.design]=find_task_and_rest(handles.xy_data,handles.xy_peaks,handles.pmd_name,handles.crest_start,handles.data_rate);
 guidata(hObject, handles);
 if ~isempty(handles.marker)
     axes(handles.plot1); % create plot window
     cla; % clear plot content
     task_start_end=cell2mat(handles.design(strcmp(handles.design(:,4),'task'),2:3));
-    plot_again(handles.xy_AUX,handles.pmd_name,'marker',handles.marker,'peaks',handles.max_ampu,'task',task_start_end);
+    plot_again(handles.xy_data,handles.pmd_name,handles.data_type,'marker',handles.marker,'peaks',handles.xy_peaks,'task',task_start_end);
 end
 
 % --- Executes on button press in cancelbutton.

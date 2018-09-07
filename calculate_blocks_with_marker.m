@@ -7,12 +7,12 @@
 % Ulrike Horn, 06.09.2017
 
 % function [block,mean_dur_task,mean_dur_rest]=calculate_blocks_with_marker(pmd_file,xy_AUX,data_rate,xy_Marker)
-function [crest_start]=calculate_blocks_with_marker(xy_AUX,data_rate,xy_Marker)
+function [crest_start]=calculate_blocks_with_marker(xy_data,data_rate,xy_Marker)
 
-if length(xy_AUX) == length(xy_Marker) 
-	display('xy_AUX and xy_Marker have equal dimensions');
+if length(xy_data) == length(xy_Marker) 
+	display('xy_data and xy_Marker have equal dimensions');
 else
-    display('ERROR: xy_AUX and xy_Marker have unequal dimensions'); return;
+    display('ERROR: xy_data and xy_Marker have unequal dimensions'); return;
 end
 
 % find the time points where the marker has value different than zero
@@ -40,10 +40,10 @@ end
 crest_start = crest_start';
 crest_start=[crest_start zeros(length(crest_start),1)];
 for cc=1:length(crest_start)
-    index= xy_AUX(:,1)==crest_start(cc);
-    crest_start(cc,2)=xy_AUX(index,2);
+    index= xy_data(:,1)==crest_start(cc);
+    crest_start(cc,2)=xy_data(index,2);
 end
 % add beginning of recording as an additional starting point
 start_rec=1/data_rate+1;
-start_rec_index=xy_AUX(:,1)==start_rec;
-crest_start=[start_rec xy_AUX(start_rec_index,2);crest_start];
+start_rec_index=xy_data(:,1)==start_rec;
+crest_start=[start_rec xy_data(start_rec_index,2);crest_start];
